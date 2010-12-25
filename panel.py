@@ -10,9 +10,8 @@ import time
 
 import cream
 import cream.gui
-from cream.util import cached_property
 
-from appindicators.host import StatusNotifierHost
+from appindicators.host import StatusNotifierHost, Status
 
 FONT = ('Droid Sans', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 FONT_SIZE = 14
@@ -113,21 +112,43 @@ class ClockApplet(Applet):
 
 class Indicator(object):
 
-    def __init__(self, item):
+    def __init__(self, item, applet):
         self.item = item
+        self.applet = applet
+        
+        self.status = None
+        self.icon_path = None
+        
+        item.connect('icon-new', lambda *x: applet.emit('render-request'))
+        item.connect('attention-icon-new', lambda *x: applet.emit('render-request'))
+        item.connect('status-new', lambda *x: applet.emit('render-request'))
 
-    @cached_property
-    def icon_path(self):
-        return self.item.get_current_icon_filename()
+    
+    def get_icon_path(self, size):
+        if self.icon_path is not None and self.item.status == self.status:
+            return self.icon_path
+            
+        self.status = self.item.status
+            
+        if self.item.status == Status.NeedsAttention:
+            icon_name = self.item.attention_icon_name
+        else:
+            icon_name = self.item.icon_name
+        
+        self.icon_path = self.item.get_current_icon_filename()
+        return self.icon_path
 
 
 class ApplicationIndicatorApplet(Applet):
 
     def __init__(self):
         Applet.__init__(self)
+        
+        self.default_size = 22
+        
         self.host = StatusNotifierHost()
-        self.indicators = [Indicator(item) for item in self.host.items]
-
+        self.indicators = [Indicator(item, self) for item in self.host.items]
+        
         self.connect('click', self.click_cb)
 
 
@@ -139,12 +160,20 @@ class ApplicationIndicatorApplet(Applet):
         win = menu.get_parent()
         x, y = win.get_position()
         win.move(x, self.get_allocation()[1] + 1)
+        
+        
+    def get_size(self):
+        allocation = self.get_allocation()
+        if allocation is not None:
+            return allocation[1]
+        else:
+            return self.default_size
 
 
     def render(self, ctx):
 
         for indicator in self.indicators:
-            icon_path = indicator.icon_path
+            icon_path = indicator.get_icon_path(self.get_size())
 
             icon_surface = cairo.ImageSurface.create_from_png(icon_path)
             height = icon_surface.get_height()
@@ -158,7 +187,7 @@ class ApplicationIndicatorApplet(Applet):
         width = PADDING
 
         for indicator in self.indicators:
-            icon_path = indicator.icon_path
+            icon_path = indicator.get_icon_path(self.get_size())
 
             icon_surface = cairo.ImageSurface.create_from_png(icon_path)
             width += icon_surface.get_width() + PADDING
