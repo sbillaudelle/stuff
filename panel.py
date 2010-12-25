@@ -128,6 +128,14 @@ class ApplicationIndicatorApplet(Applet):
         self.host = StatusNotifierHost()
         self.indicators = [Indicator(item) for item in self.host.items]
 
+        self.connect('click', self.click_cb)
+
+
+    def click_cb(self, applet, x, y):
+
+        # TODO: Get indicator icon at x, y!
+        self.indicators[0].item.show_menu()
+
 
     def render(self, ctx):
 
