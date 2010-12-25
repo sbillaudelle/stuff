@@ -26,6 +26,8 @@ class Applet(gobject.GObject):
     __gsignals__ = {
         'render-request': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_PYOBJECT, ()),
         'allocation-changed': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'allocation-changed': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'click': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_INT, gobject.TYPE_INT)),
         }
 
     def __init__(self):
@@ -192,6 +194,7 @@ class PanelWindow(gtk.Window):
 
 
     def realize_cb(self, window):
+        self.window.set_events(self.window.get_events() | gtk.gdk.BUTTON_RELEASE_MASK)
         self.window.property_change("_NET_WM_STRUT", "CARDINAL", 32, gtk.gdk.PROP_MODE_REPLACE, [0, 0, 24, 0])
         self.window.input_shape_combine_region(gtk.gdk.region_rectangle((0, 0, self.get_size()[0], 24)), 0, 0)
 
@@ -239,12 +242,29 @@ class Panel():
         self.window.show_all()
 
         self.window.connect('expose-event', self.expose_cb)
+        self.window.connect('button-release-event', self.click_cb)
 
         gobject.timeout_add(200, self.handle_fullscreen_windows)
 
         self.add_applet(ApplicationIndicatorApplet())
 
-        #self.add_applet(ClockApplet())
+
+    def get_applet_at_coords(self, x, y):
+
+        for applet in self.applets:
+            w, h = applet.get_allocation()
+            x0, y0 = applet.get_position()
+            x1, y1 = x0 + w, y0 + h
+            if x >= x0 and x <= x1 and y >= y0 and y <= y1:
+                return applet
+        return None
+
+
+    def click_cb(self, window, event):
+        applet = self.get_applet_at_coords(event.x, event.y)
+        x = event.x - applet.get_position()[0]
+        y = event.y - applet.get_position()[1]
+        applet.emit('click', x, y)
 
 
     def handle_fullscreen_windows(self):
