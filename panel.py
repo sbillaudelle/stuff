@@ -10,6 +10,9 @@ import time
 
 import cream
 import cream.gui
+from cream.util import cached_property
+
+from appindicators.host import StatusNotifierHost
 
 FONT = ('Droid Sans', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 FONT_SIZE = 14
@@ -106,6 +109,51 @@ class ClockApplet(Applet):
         return self.get_allocation()
 
 
+class Indicator(object):
+
+    def __init__(self, item):
+        self.item = item
+
+    @cached_property
+    def icon_path(self):
+        return self.item.get_current_icon_filename()
+
+
+class ApplicationIndicatorApplet(Applet):
+
+    def __init__(self):
+        Applet.__init__(self)
+        self.host = StatusNotifierHost()
+        self.indicators = [Indicator(item) for item in self.host.items]
+
+
+    def render(self, ctx):
+
+        for indicator in self.indicators:
+            icon_path = indicator.icon_path
+
+            icon_surface = cairo.ImageSurface.create_from_png(icon_path)
+            height = icon_surface.get_height()
+
+            ctx.set_source_surface(icon_surface, PADDING, (self.get_allocation()[1] - height) / 2)
+            ctx.paint()
+
+
+    def allocate(self, height):
+
+        width = PADDING
+
+        for indicator in self.indicators:
+            icon_path = indicator.icon_path
+
+            icon_surface = cairo.ImageSurface.create_from_png(icon_path)
+            width += icon_surface.get_width() + PADDING
+
+        self.set_allocation(width, height)
+
+        return self.get_allocation()
+
+
 class PanelWindow(gtk.Window):
 
     def __init__(self):
@@ -157,7 +205,7 @@ class PanelWindow(gtk.Window):
         ctx.set_source_rgba(0, 0, 0, 0)
         ctx.paint()
 
-        ctx.scale(1440 / 10, 1)
+        ctx.scale(1680 / 10, 1)
 
         shadow_surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.get_size()[0], self.get_size()[1])
         shadow_ctx = cairo.Context(shadow_surface)
@@ -194,7 +242,9 @@ class Panel():
 
         gobject.timeout_add(200, self.handle_fullscreen_windows)
 
-        self.add_applet(ClockApplet())
+        self.add_applet(ApplicationIndicatorApplet())
+
+        #self.add_applet(ClockApplet())
 
 
     def handle_fullscreen_windows(self):
@@ -204,11 +254,11 @@ class Panel():
         for w in windows:
             if w.is_maximized() and w.is_in_viewport(workspace):
                 if self.window.get_alpha()[0] == .5:
-    
+
                     def update(t, state):
                         self.window.set_alpha(.5 + state * .5, 1 - state)
                         self.window.window.invalidate_rect(gtk.gdk.Rectangle(0, 0, self.window.get_size()[0],self.window.get_size()[1]), True)
-    
+
                     t = cream.gui.Timeline(FADE_DURATION, cream.gui.CURVE_SINE)
                     t.connect('update', update)
                     t.run()
@@ -219,7 +269,7 @@ class Panel():
                 def update(t, state):
                     self.window.set_alpha(1 - state * .5, state)
                     self.window.window.invalidate_rect(gtk.gdk.Rectangle(0, 0, self.window.get_size()[0],self.window.get_size()[1]), True)
-    
+
                 t = cream.gui.Timeline(FADE_DURATION, cream.gui.CURVE_SINE)
                 t.connect('update', update)
                 t.run()
