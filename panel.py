@@ -134,7 +134,11 @@ class ApplicationIndicatorApplet(Applet):
     def click_cb(self, applet, x, y):
 
         # TODO: Get indicator icon at x, y!
-        self.indicators[0].item.show_menu()
+        menu = self.indicators[0].item.dbusmenu_gtk.root_widget
+        menu.popup(None, None, None, 1, 0)
+        win = menu.get_parent()
+        x, y = win.get_position()
+        win.move(x, self.get_allocation()[1] + 1)
 
 
     def render(self, ctx):
