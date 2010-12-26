@@ -166,6 +166,7 @@ class ApplicationIndicatorApplet(Applet):
         Applet.__init__(self)
 
         self.default_size = 22
+        self.padding = 5
 
         self.host = StatusNotifierHost()
         self.indicators = [Indicator(item, self) for item in self.host.items]
@@ -194,14 +195,19 @@ class ApplicationIndicatorApplet(Applet):
 
     def render(self, ctx):
 
+        position = PADDING
+
         for indicator in self.indicators:
             icon_path = indicator.get_icon_path(self.get_size())
 
             icon_surface = cairo.ImageSurface.create_from_png(icon_path)
             height = icon_surface.get_height()
+            width = icon_surface.get_width()
 
-            ctx.set_source_surface(icon_surface, PADDING, (self.get_allocation()[1] - height) / 2)
+            ctx.set_source_surface(icon_surface, position, (self.get_allocation()[1] - height) / 2)
             ctx.paint()
+
+            position += width + self.padding
 
 
     def allocate(self, height):
