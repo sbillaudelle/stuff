@@ -274,6 +274,9 @@ class Panel():
 
     def click_cb(self, window, event):
         applet = self.get_applet_at_coords(event.x, event.y)
+        if applet is None:
+            return
+
         x = event.x - applet.get_position()[0]
         y = event.y - applet.get_position()[1]
         applet.emit('click', x, y)
