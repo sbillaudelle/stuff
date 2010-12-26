@@ -113,42 +113,63 @@ class ClockApplet(Applet):
 class Indicator(object):
 
     def __init__(self, item, applet):
+
         self.item = item
         self.applet = applet
-        
+
         self.status = None
         self.icon_path = None
-        
+
         item.connect('icon-new', lambda *x: applet.emit('render-request'))
         item.connect('attention-icon-new', lambda *x: applet.emit('render-request'))
         item.connect('status-new', lambda *x: applet.emit('render-request'))
 
-    
-    def get_icon_path(self, size):
-        if self.icon_path is not None and self.item.status == self.status:
-            return self.icon_path
-            
-        self.status = self.item.status
-            
+
+    def get_icon_name(self):
+
         if self.item.status == Status.NeedsAttention:
-            icon_name = self.item.attention_icon_name
+            return self.item.attention_icon_name
         else:
-            icon_name = self.item.icon_name
-        
-        self.icon_path = self.item.get_current_icon_filename()
-        return self.icon_path
+            return self.item.icon_name
+
+
+    def lookup_icon(self, size):
+
+        icon_name = self.get_icon_name()
+        theme = gtk.icon_theme_get_default()
+        if self.item.icon_theme_path:
+            theme.append_search_path(self.item.icon_theme_path)
+        icon_info = theme.lookup_icon(self.get_icon_name(), size, 0)
+        if icon_info is None:
+            raise ValueError('Icon wasn\'t found! %r' % self.icon_name)
+
+        return icon_info.get_filename()
+
+
+    def get_icon_path(self, size):
+
+        # TODO: Sometimes when indicator changes status the icon is not set properly
+        if self.item.status == self.status and self.icon_path is not None:
+            self.status = self.item.status
+            return self.icon_path
+        else:
+            self.status = self.item.status
+            self.icon_path = self.lookup_icon(size)
+            return self.icon_path
+
+
 
 
 class ApplicationIndicatorApplet(Applet):
 
     def __init__(self):
         Applet.__init__(self)
-        
+
         self.default_size = 22
-        
+
         self.host = StatusNotifierHost()
         self.indicators = [Indicator(item, self) for item in self.host.items]
-        
+
         self.connect('click', self.click_cb)
 
 
@@ -160,9 +181,10 @@ class ApplicationIndicatorApplet(Applet):
         win = menu.get_parent()
         x, y = win.get_position()
         win.move(x, self.get_allocation()[1] + 1)
-        
-        
+
+
     def get_size(self):
+
         allocation = self.get_allocation()
         if allocation is not None:
             return allocation[1]
