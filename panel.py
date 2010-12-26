@@ -120,9 +120,9 @@ class Indicator(object):
         self.status = None
         self.icon_path = None
 
-        item.connect('icon-new', lambda *x: applet.emit('render-request'))
-        item.connect('attention-icon-new', lambda *x: applet.emit('render-request'))
-        item.connect('status-new', lambda *x: applet.emit('render-request'))
+        item.connect('icon-new', lambda *x: applet.draw())
+        item.connect('attention-icon-new', lambda *x: applet.draw())
+        item.connect('status-new', lambda *x: applet.draw())
 
 
     def get_icon_name(self):
@@ -442,7 +442,7 @@ class Panel():
     def allocation_changed_cb(self, applet, allocation):
         applet.set_position(1440 - allocation[0], 0)
         self.window.window.invalidate_rect(gtk.gdk.Rectangle(0, 0, self.window.get_size()[0],self.window.get_size()[1]), True)
-        
+
 
 
 if __name__ == '__main__':
