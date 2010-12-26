@@ -16,7 +16,7 @@ from appindicators.host import StatusNotifierHost, Status
 FONT = ('Droid Sans', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
 FONT_SIZE = 14
 COLOR = (.1, .1, .1, 1)
-PADDING = 10
+PADDING = 5
 FADE_DURATION = 500
 
 class Applet(gobject.GObject):
@@ -188,14 +188,26 @@ class ApplicationIndicatorApplet(Applet):
         self.draw()
 
 
+    def get_indicator_at_coords(self, x, y):
+
+        for c, indicator in enumerate(self.indicators):
+            w = h = self.default_size
+            x0, y0 = PADDING + c * (w + PADDING), 1
+            x1, y1 = x0 + w, y0 + h
+            if x >= x0 and x <= x1 and y >= y0 and y <= y1:
+                return indicator
+        return None
+
+
     def click_cb(self, applet, x, y):
 
-        # TODO: Get indicator icon at x, y!
-        menu = self.indicators[0].item.dbusmenu_gtk.root_widget
-        menu.popup(None, None, None, 1, 0)
-        win = menu.get_parent()
-        x, y = win.get_position()
-        win.move(x, self.get_allocation()[1] + 1)
+        indicator = self.get_indicator_at_coords(x, y)
+        if indicator:
+            menu = indicator.item.dbusmenu_gtk.root_widget
+            menu.popup(None, None, None, 1, 0)
+            win = menu.get_parent()
+            x, y = win.get_position()
+            win.move(x, self.get_allocation()[1] + 1)
 
 
     def get_size(self):
