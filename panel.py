@@ -169,9 +169,23 @@ class ApplicationIndicatorApplet(Applet):
         self.padding = 5
 
         self.host = StatusNotifierHost()
+        self.host.connect('item-added', self.item_added_cb)
+        self.host.connect('item-removed', self.item_added_cb)
         self.indicators = [Indicator(item, self) for item in self.host.items]
 
         self.connect('click', self.click_cb)
+
+
+    def item_added_cb(self, host, item):
+        self.indicators = [Indicator(item, self) for item in self.host.items]
+        self.allocate(self.get_allocation()[1])
+        self.draw()
+
+
+    def item_removed_cb(self, host, item):
+        self.indicators = [Indicator(item, self) for item in self.host.items]
+        self.allocate(self.get_allocation()[1])
+        self.draw()
 
 
     def click_cb(self, applet, x, y):
@@ -415,6 +429,8 @@ class Panel():
 
     def allocation_changed_cb(self, applet, allocation):
         applet.set_position(1440 - allocation[0], 0)
+        self.window.window.invalidate_rect(gtk.gdk.Rectangle(0, 0, self.window.get_size()[0],self.window.get_size()[1]), True)
+        
 
 
 if __name__ == '__main__':
